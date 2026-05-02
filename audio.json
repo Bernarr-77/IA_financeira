@@ -1,0 +1,49 @@
+{
+    "event": "messages.upsert",
+    "instance": "berbarr",
+    "data": {
+        "key": {
+            "remoteJid": "125808484036849@lid",
+            "fromMe": false,
+            "id": "3A31A39A842740364E17"
+        },
+        "pushName": "bernardo",
+        "status": "DELIVERY_ACK",
+        "message": {
+            "audioMessage": {
+                "url": "https://mmg.whatsapp.net/v/t62.7117-24/598184524_1276584171289673_1037563831572251248_n.enc?ccb=11-4&oh=01_Q5Aa4QHLocLCnPtn9xjv9nfqazMRlr_cL6JMKBe9i2YEvpk1Lg&oe=6A1DBF90&_nc_sid=5e03e0&mms3=true",
+                "mimetype": "audio/ogg; codecs=opus",
+                "fileSha256": "zGL9ObDkI7tNTjTXgr9FHgDdA9dlgEl51vOS0lwRRKY=",
+                "fileLength": "5902",
+                "seconds": 2,
+                "ptt": true,
+                "mediaKey": "BcrBXhsbQe+9jfymyJ7Q9/RHBZ1fdmPqjEpMJQT3GVc=",
+                "fileEncSha256": "8duWyAMjp80euvfxTlw2sU88x8dyp8ir3m04DwxNLWE=",
+                "directPath": "/v/t62.7117-24/598184524_1276584171289673_1037563831572251248_n.enc?ccb=11-4&oh=01_Q5Aa4QHLocLCnPtn9xjv9nfqazMRlr_cL6JMKBe9i2YEvpk1Lg&oe=6A1DBF90&_nc_sid=5e03e0",
+                "mediaKeyTimestamp": "1777749412",
+                "streamingSidecar": "Bg8Bvt10ikf50Q==",
+                "waveform": "AAAAAAACBQcKFSU0RE9SVllbVlJOSkhHRkVEQ0JBQUJDREVFRUVFRURDQ0JCQkJBQUFBQUFBQUJCQ0NEREVGRw=="
+            },
+            "messageContextInfo": {
+                "deviceListMetadata": {
+                    "senderKeyHash": "UNFexas+fNW7CA==",
+                    "senderTimestamp": "1777728642",
+                    "recipientKeyHash": "43mIpiviQI/q5A==",
+                    "recipientTimestamp": "1775065128"
+                },
+                "deviceListMetadataVersion": 2,
+                "messageSecret": "5/+BbAkvQ+IbdAEW9SY+SQ6P+A3flD1tE8eUXzO3TVQ="
+            }
+        },
+        "contextInfo": null,
+        "messageType": "audioMessage",
+        "messageTimestamp": 1777749416,
+        "instanceId": "bd2f2951-b457-40f2-808f-8fa17aef93fe",
+        "source": "ios"
+    },
+    "destination": "http://host.docker.internal:8000/webhook/evolution",
+    "date_time": "2026-05-02T16:16:56.300Z",
+    "sender": "553196120701@s.whatsapp.net",
+    "server_url": "http://localhost:8080",
+    "apikey": "B282153A0ADA-4E13-B514-A2A5BBB72EC0"
+}
