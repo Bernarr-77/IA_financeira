@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from app.core.schemas import EvolutionSchema
 import httpx
+from app.service.agent import chamar_gemini
 
 
 load_dotenv()
@@ -33,12 +34,15 @@ async def buscar_base64(id_audio, audio, nome_instancia, url_servidor, api_key):
 @router.post("/evolution")
 async def capturar_payload(payload: EvolutionSchema,dependencia = Depends(validar_api_key)):
     try:
+        texto_extraido = None
         evento = payload.event
         if EVENTOS_PERMITIDOS and evento not in EVENTOS_PERMITIDOS:
             return {"status": "ignored", "event": evento}
         if payload.data.message.conversation:
             texto_extraido = payload.data.message.conversation
-        elif payload.data.message.audioMessage:
+            resposta_gemini = await chamar_gemini(text=texto_extraido)
+
+        if payload.data.message.audioMessage:
             audio = payload.data.message.audioMessage
             id_audio = payload.data.key.id
             nome_instancia = payload.instance
@@ -49,7 +53,12 @@ async def capturar_payload(payload: EvolutionSchema,dependencia = Depends(valida
                                                     nome_instancia=nome_instancia,
                                                     url_servidor=url,
                                                     api_key=api)
+                                                    
             audio_pronto = resultado_base64.get("base64", None)
+            resposta_gemini = await chamar_gemini(base64=audio_pronto,
+                                            mimetype=payload.data.message.audioMessage.mimetype,
+                                            text=texto_extraido)
+             
     except Exception as e:
         print(f"❌ Erro ao capturar payload: {e}")
         return {"status": "error"}
