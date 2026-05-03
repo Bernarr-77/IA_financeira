@@ -1,21 +1,30 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Request
 import os
 import secrets
 from dotenv import load_dotenv
-from app.core.schemas import EvolutionSchema
 
 load_dotenv(override=True)
 
 CHAVE_VERDADEIRA = os.getenv("AUTHENTICATION_API_KEY")
 
-if not CHAVE_VERDADEIRA:
-    raise RuntimeError("A variável AUTHENTICATION_API_KEY não foi configurada no .env")
-
-async def validar_api_key(payload: EvolutionSchema):
-    chave_recebida = payload.apikey
-    if not secrets.compare_digest(chave_recebida, CHAVE_VERDADEIRA):
+async def validar_api_key(request: Request):
+    try:
+        # Lê o JSON e guarda no estado da requisição para ser reusado
+        body = await request.json()
+        request.state.payload = body
+        
+        chave_recebida = body.get("apikey")
+        
+        if not chave_recebida or not secrets.compare_digest(str(chave_recebida), str(CHAVE_VERDADEIRA)):
+            print(f"❌ Chave inválida recebida: {chave_recebida}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Chave de API inválida"
+            )
+        return body
+    except Exception as e:
+        print(f"❌ Erro na validação: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Chave de API inválida"
+            detail="Não foi possível validar a requisição"
         )
-    return True
