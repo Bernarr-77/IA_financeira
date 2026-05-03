@@ -518,7 +518,7 @@ Alimentação | Transporte | Saúde | Lazer | Educação | Moradia | Vestuário 
         # executamos a função, devolvemos o resultado, e ele gera a resposta final.
         while True:
             resposta = await client.aio.models.generate_content(
-                model="gemini-2.5-pro",
+                model="gemini-3-flash-preview",
                 contents=conteudo,
                 config=config,
             )
