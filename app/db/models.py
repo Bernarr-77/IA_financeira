@@ -1,6 +1,6 @@
 from app.db.session import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Enum, ForeignKey, DateTime, Float, Boolean
+from sqlalchemy import String, Enum, ForeignKey, DateTime, Float, Boolean, Integer
 import enum
 from datetime import datetime, timezone
 from typing import List
@@ -21,6 +21,7 @@ class Usuario(Base):
     # Um usuário tem muitas conversas e muitas transações
     conversas: Mapped[List["Conversas"]] = relationship(back_populates="usuario")
     transacoes: Mapped[List["Transacao"]] = relationship(back_populates="usuario")
+    assinaturas: Mapped[List["Assinatura"]] = relationship(back_populates="usuario")
 
 class Conversas(Base):
     __tablename__ = "conversas_zap"
@@ -56,4 +57,17 @@ class Parcela(Base):
     pago: Mapped[bool] = mapped_column(Boolean, default=False)
 
     transacao: Mapped["Transacao"] = relationship(back_populates="parcelas")
+
+class Assinatura(Base):
+    __tablename__ = "assinaturas"
+    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    nome: Mapped[str] = mapped_column(String(100), nullable=False)
+    valor: Mapped[float] = mapped_column(Float, nullable=False)
+    categoria: Mapped[str] = mapped_column(String(50), nullable=False, default="Assinatura")
+    dia_vencimento: Mapped[int] = mapped_column(Integer, nullable=False)
+    ativa: Mapped[bool] = mapped_column(Boolean, default=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+
+    usuario: Mapped["Usuario"] = relationship(back_populates="assinaturas")
 

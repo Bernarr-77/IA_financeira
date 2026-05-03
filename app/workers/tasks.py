@@ -13,7 +13,7 @@ from sqlalchemy import select, func
 
 from app.workers.celery_app import celery_app
 from app.db.session import SessionLocal
-from app.db.models import Usuario, Transacao, Parcela
+from app.db.models import Usuario, Transacao, Parcela, Assinatura
 
 
 # ─────────────────────────────────────────────
@@ -280,5 +280,44 @@ def resumo_mensal():
 
             if parcelas_mes:
                 linhas.append(f"\n📅 *Parcelas deste mês:* {len(parcelas_mes)} pendentes (R${total_parcelas:.2f})")
+
+            enviar_whatsapp(usuario.whatsapp, "\n".join(linhas), usuario.instancia)
+
+
+# ─────────────────────────────────────────────
+# 🔄 ALERTA DE ASSINATURAS — Dia 15 às 10h
+# ─────────────────────────────────────────────
+
+@celery_app.task(name="app.workers.tasks.alerta_assinaturas")
+def alerta_assinaturas():
+    """Envia um lembrete mensal com todas as assinaturas ativas e o custo total."""
+    usuarios = buscar_todos_usuarios()
+
+    for usuario in usuarios:
+        with SessionLocal() as db:
+            assinaturas = db.scalars(
+                select(Assinatura)
+                .where(Assinatura.usuario_id == usuario.id, Assinatura.ativa == True)
+                .order_by(Assinatura.valor.desc())
+            ).all()
+
+            if not assinaturas:
+                continue
+
+            total_mensal = sum(a.valor for a in assinaturas)
+            total_anual = total_mensal * 12
+
+            linhas = [f"🔄 *Oi, {usuario.nome}!* Lembrete das suas assinaturas ativas:\n"]
+            for a in assinaturas:
+                linhas.append(f"• {a.nome} — R${a.valor:.2f}/mês (vence dia {a.dia_vencimento})")
+
+            linhas.append(f"\n💲 Total mensal: R${total_mensal:.2f}")
+            linhas.append(f"📅 Total anual: R${total_anual:.2f}")
+
+            if usuario.limite_mensal:
+                pct = (total_mensal / usuario.limite_mensal) * 100
+                linhas.append(f"📊 Isso representa {pct:.1f}% do seu limite mensal.")
+
+            linhas.append("\nAlguma assinatura que você não usa mais? Me fale que eu cancelo! 😉")
 
             enviar_whatsapp(usuario.whatsapp, "\n".join(linhas), usuario.instancia)

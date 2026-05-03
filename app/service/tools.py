@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
-from app.db.models import Usuario, Conversas, Transacao, Parcela, Role
+from app.db.models import Usuario, Conversas, Transacao, Parcela, Assinatura, Role
 from app.db.session import SessionLocal
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -816,3 +816,141 @@ def lembrete_parcela(numero: str, dias: int = 1) -> dict:
         ]
         total = sum(p.valor for p in parcelas)
         return {"parcelas_vencendo": itens, "total": round(total, 2)}
+
+
+# ─────────────────────────────────────────────
+# Fase 7 — Gestão de Assinaturas
+# ─────────────────────────────────────────────
+
+def registrar_assinatura(numero: str, nome: str, valor: float, dia_vencimento: int, categoria: str = "Assinatura") -> dict:
+    """Registra uma nova assinatura recorrente (Netflix, Spotify, academia, etc.)."""
+    with SessionLocal() as db:
+        usuario = buscar_usuario(numero=numero, db=db)
+        if not usuario:
+            return {"erro": "Usuário não encontrado."}
+
+        nova = Assinatura(
+            usuario_id=usuario.id,
+            nome=nome,
+            valor=valor,
+            dia_vencimento=dia_vencimento,
+            categoria=categoria,
+            ativa=True,
+        )
+        db.add(nova)
+        db.commit()
+        db.refresh(nova)
+
+        return {
+            "sucesso": True,
+            "mensagem": f"Assinatura '{nome}' registrada com sucesso!",
+            "id": nova.id,
+            "nome": nova.nome,
+            "valor": nova.valor,
+            "dia_vencimento": nova.dia_vencimento,
+            "categoria": nova.categoria,
+        }
+
+
+def listar_assinaturas(numero: str) -> dict:
+    """Lista todas as assinaturas ativas do usuário."""
+    with SessionLocal() as db:
+        usuario = buscar_usuario(numero=numero, db=db)
+        if not usuario:
+            return {"erro": "Usuário não encontrado."}
+
+        assinaturas = db.scalars(
+            select(Assinatura)
+            .where(Assinatura.usuario_id == usuario.id, Assinatura.ativa == True)
+            .order_by(Assinatura.dia_vencimento.asc())
+        ).all()
+
+        if not assinaturas:
+            return {"mensagem": "Você não tem nenhuma assinatura ativa cadastrada."}
+
+        itens = [
+            {
+                "id": a.id,
+                "nome": a.nome,
+                "valor": a.valor,
+                "dia_vencimento": a.dia_vencimento,
+                "categoria": a.categoria,
+            }
+            for a in assinaturas
+        ]
+        total_mensal = sum(a.valor for a in assinaturas)
+        total_anual = total_mensal * 12
+        return {
+            "assinaturas": itens,
+            "total_mensal": round(total_mensal, 2),
+            "total_anual": round(total_anual, 2),
+            "quantidade": len(itens),
+        }
+
+
+def cancelar_assinatura(numero: str, assinatura_id: int) -> dict:
+    """Cancela (desativa) uma assinatura pelo ID."""
+    with SessionLocal() as db:
+        usuario = buscar_usuario(numero=numero, db=db)
+        if not usuario:
+            return {"erro": "Usuário não encontrado."}
+
+        assinatura = db.scalars(
+            select(Assinatura).where(
+                Assinatura.id == assinatura_id,
+                Assinatura.usuario_id == usuario.id,
+            )
+        ).first()
+
+        if not assinatura:
+            return {"erro": f"Assinatura #{assinatura_id} não encontrada."}
+
+        if not assinatura.ativa:
+            return {"mensagem": f"A assinatura '{assinatura.nome}' já estava cancelada."}
+
+        assinatura.ativa = False
+        db.commit()
+
+        economia_anual = assinatura.valor * 12
+        return {
+            "sucesso": True,
+            "mensagem": f"Assinatura '{assinatura.nome}' cancelada com sucesso!",
+            "economia_mensal": round(assinatura.valor, 2),
+            "economia_anual": round(economia_anual, 2),
+        }
+
+
+def resumo_assinaturas(numero: str) -> dict:
+    """Retorna um resumo financeiro das assinaturas: total mensal, anual e impacto no limite."""
+    with SessionLocal() as db:
+        usuario = buscar_usuario(numero=numero, db=db)
+        if not usuario:
+            return {"erro": "Usuário não encontrado."}
+
+        assinaturas = db.scalars(
+            select(Assinatura)
+            .where(Assinatura.usuario_id == usuario.id, Assinatura.ativa == True)
+            .order_by(Assinatura.valor.desc())
+        ).all()
+
+        if not assinaturas:
+            return {"mensagem": "Você não tem nenhuma assinatura ativa."}
+
+        total_mensal = sum(a.valor for a in assinaturas)
+        total_anual = total_mensal * 12
+
+        resultado = {
+            "assinaturas": [{"nome": a.nome, "valor": a.valor, "dia": a.dia_vencimento} for a in assinaturas],
+            "total_mensal": round(total_mensal, 2),
+            "total_anual": round(total_anual, 2),
+            "quantidade": len(assinaturas),
+        }
+
+        if usuario.limite_mensal:
+            percentual = (total_mensal / usuario.limite_mensal) * 100
+            resultado["percentual_do_limite"] = round(percentual, 1)
+            resultado["mensagem_limite"] = (
+                f"Suas assinaturas consomem {percentual:.1f}% do seu limite mensal de R${usuario.limite_mensal:.2f}."
+            )
+
+        return resultado

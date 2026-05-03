@@ -40,4 +40,9 @@ celery_app.conf.beat_schedule = {
         "task": "app.workers.tasks.resumo_mensal",
         "schedule": crontab(hour=8, minute=0, day_of_month=1),
     },
+    # 🔄 Todo dia 15 às 10h — Alerta de assinaturas ativas
+    "alerta-assinaturas": {
+        "task": "app.workers.tasks.alerta_assinaturas",
+        "schedule": crontab(hour=10, minute=0, day_of_month=15),
+    },
 }

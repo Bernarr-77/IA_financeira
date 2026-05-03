@@ -35,6 +35,11 @@ from app.service.tools import (
     calcular_comprometimento,
     exportar_resumo_texto,
     lembrete_parcela,
+    # Fase 7 - Assinaturas
+    registrar_assinatura,
+    listar_assinaturas,
+    cancelar_assinatura,
+    resumo_assinaturas,
 )
 
 load_dotenv()
@@ -68,6 +73,10 @@ FERRAMENTAS_DISPONIVEIS = {
     "calcular_comprometimento": calcular_comprometimento,
     "exportar_resumo_texto": exportar_resumo_texto,
     "lembrete_parcela": lembrete_parcela,
+    "registrar_assinatura": registrar_assinatura,
+    "listar_assinaturas": listar_assinaturas,
+    "cancelar_assinatura": cancelar_assinatura,
+    "resumo_assinaturas": resumo_assinaturas,
 }
 
 # ─────────────────────────────────────────────
@@ -349,6 +358,55 @@ DECLARACOES_FERRAMENTAS = [
                 properties={
                     "numero": types.Schema(type=types.Type.STRING, description="Número WhatsApp do usuário"),
                     "dias": types.Schema(type=types.Type.INTEGER, description="Quantos dias à frente verificar (padrão 1)"),
+                },
+                required=["numero"],
+            ),
+        ),
+        types.FunctionDeclaration(
+            name="registrar_assinatura",
+            description="Registra uma nova assinatura/serviço recorrente (Netflix, Spotify, academia, internet, etc.). Use quando o usuário disser 'assino Netflix', 'tenho assinatura de', 'pago todo mês'.",
+            parameters=types.Schema(
+                type=types.Type.OBJECT,
+                properties={
+                    "numero": types.Schema(type=types.Type.STRING, description="Número WhatsApp do usuário"),
+                    "nome": types.Schema(type=types.Type.STRING, description="Nome da assinatura (ex: Netflix, Spotify, Academia)"),
+                    "valor": types.Schema(type=types.Type.NUMBER, description="Valor mensal em reais"),
+                    "dia_vencimento": types.Schema(type=types.Type.INTEGER, description="Dia do mês em que vence (1-31)"),
+                    "categoria": types.Schema(type=types.Type.STRING, description="Categoria: Assinatura, Lazer, Saúde, Educação, etc."),
+                },
+                required=["numero", "nome", "valor", "dia_vencimento"],
+            ),
+        ),
+        types.FunctionDeclaration(
+            name="listar_assinaturas",
+            description="Lista todas as assinaturas ativas do usuário com total mensal e anual. Use para 'minhas assinaturas', 'quais serviços pago', 'lista assinaturas'.",
+            parameters=types.Schema(
+                type=types.Type.OBJECT,
+                properties={
+                    "numero": types.Schema(type=types.Type.STRING, description="Número WhatsApp do usuário"),
+                },
+                required=["numero"],
+            ),
+        ),
+        types.FunctionDeclaration(
+            name="cancelar_assinatura",
+            description="Cancela uma assinatura pelo ID. Use para 'cancelar Netflix', 'tirar assinatura'. Liste as assinaturas primeiro para pegar o ID se necessário.",
+            parameters=types.Schema(
+                type=types.Type.OBJECT,
+                properties={
+                    "numero": types.Schema(type=types.Type.STRING, description="Número WhatsApp do usuário"),
+                    "assinatura_id": types.Schema(type=types.Type.INTEGER, description="ID da assinatura a ser cancelada"),
+                },
+                required=["numero", "assinatura_id"],
+            ),
+        ),
+        types.FunctionDeclaration(
+            name="resumo_assinaturas",
+            description="Mostra o impacto financeiro das assinaturas: total mensal, anual e percentual do limite. Use para 'quanto gasto com assinatura', 'impacto das assinaturas', 'resumo assinaturas'.",
+            parameters=types.Schema(
+                type=types.Type.OBJECT,
+                properties={
+                    "numero": types.Schema(type=types.Type.STRING, description="Número WhatsApp do usuário"),
                 },
                 required=["numero"],
             ),
