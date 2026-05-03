@@ -16,6 +16,7 @@ class Usuario(Base):
     nome: Mapped[str] = mapped_column(String(50), nullable=False)
     dia_vencimento_cartao: Mapped[int] = mapped_column(nullable=True)
     limite_mensal: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    instancia: Mapped[str] = mapped_column(String(100), nullable=True)
 
     # Um usuário tem muitas conversas e muitas transações
     conversas: Mapped[List["Conversas"]] = relationship(back_populates="usuario")

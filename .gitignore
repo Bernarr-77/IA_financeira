@@ -128,7 +128,7 @@ ipython_config.py
 __pypackages__/
 
 # Celery stuff
-celerybeat-schedule
+celerybeat-schedule*
 celerybeat.pid
 
 # Redis
@@ -216,7 +216,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 #Alembic
-alembic.ini
+# alembic.ini
 
 uploads/
 .vercel

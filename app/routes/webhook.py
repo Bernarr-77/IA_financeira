@@ -1,8 +1,14 @@
 import os
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from app.core.security import validar_api_key
-from app.service.agent import chamar_gemini
+from app.service.agent import chamar_gemini, transcrever_audio
+from datetime import datetime
 import httpx
+from app.db.session import get_db
+from app.service.tools import criar_usuario, buscar_usuario, salvar_conversa_usuario
+from sqlalchemy.orm import Session
+from app.db.models import Role
+from app.db.session import SessionLocal
 
 router = APIRouter(prefix="/webhook")
 
@@ -91,7 +97,7 @@ async def enviar_resposta_whatsapp(numero: str, texto: str, url_servidor: str, n
 # Processamento principal (roda em background)
 # ─────────────────────────────────────────────
 
-async def processar_mensagem(payload: dict):
+async def processar_mensagem(payload: dict, db: Session):
     """
     Processa uma mensagem recebida do WhatsApp:
     1. Filtra mensagens próprias e duplicadas
@@ -142,25 +148,59 @@ async def processar_mensagem(payload: dict):
         audio_mensagem = message.get("audioMessage")
         resposta_gemini = None
 
+        # ── Lógica de Usuário ─────────────────────────────────────────────────
+        usuario = buscar_usuario(numero=jid_destino, db=db)
+        if not usuario:
+            usuario = criar_usuario(numero=jid_destino, nome=push_name, db=db, instancia=nome_instancia)
+        elif usuario.instancia != nome_instancia:
+            usuario.instancia = nome_instancia
+            db.add(usuario)
+            db.commit()
+            db.refresh(usuario)
+
         if texto_mensagem:
-            resposta_gemini = await chamar_gemini(text=texto_mensagem)
+            # Salva a mensagem do usuário
+            salvar_conversa_usuario(texto=texto_mensagem, numero=jid_destino, db=db, role=Role.USER)
+            
+            resposta_gemini = await chamar_gemini(
+                text=texto_mensagem,
+                nome=push_name,
+                numero=jid_destino,
+                data_hoje=datetime.now().strftime("%d/%m/%Y %H:%M")
+            )
 
         elif audio_mensagem:
             resultado_base64 = await buscar_base64_audio(msg_id, audio_mensagem, nome_instancia, url_servidor, api_key)
             audio_base64 = resultado_base64.get("base64")
+            
             if audio_base64:
-                resposta_gemini = await chamar_gemini(
-                    base64=audio_base64,
-                    mimetype=audio_mensagem.get("mimetype"),
-                    text=texto_mensagem
-                )
+                # 1. Transcreve o áudio primeiro
+                transcricao = await transcrever_audio(audio_base64, audio_mensagem.get("mimetype"))
+                
+                # 2. Salva a transcrição no banco de dados
+                texto_para_banco = transcricao if transcricao else "[Áudio não transcrito]"
+                salvar_conversa_usuario(texto=texto_para_banco, numero=jid_destino, db=db, role=Role.USER)
+                
+                # 3. Se transcreveu algo, manda para a Bia processar como se fosse texto
+                if transcricao:
+                    resposta_gemini = await chamar_gemini(
+                        text=transcricao,
+                        nome=push_name,
+                        numero=jid_destino,
+                        data_hoje=datetime.now().strftime("%d/%m/%Y %H:%M")
+                    )
 
-        # ── Envia a resposta ──────────────────────────────────────────────────
+        # ── Envia a resposta e Salva ──────────────────────────────────────────
         if resposta_gemini and jid_destino:
+            # Salva a resposta da IA
+            salvar_conversa_usuario(texto=resposta_gemini, numero=jid_destino, db=db, role=Role.ASSISTENTE)
+            
             await enviar_resposta_whatsapp(jid_destino, resposta_gemini, url_servidor, nome_instancia, api_key)
 
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"❌ Erro no processamento: {e}")
+    finally:
+        db.close()
 
 
 # ─────────────────────────────────────────────
@@ -180,6 +220,7 @@ async def capturar_payload(background_tasks: BackgroundTasks, request: Request, 
         return {"status": "ignored", "event": evento}
 
     # Agenda o processamento em background e retorna imediatamente para a Evolution
-    background_tasks.add_task(processar_mensagem, payload)
+    db = SessionLocal()
+    background_tasks.add_task(processar_mensagem, payload, db)
 
     return {"status": "received"}
