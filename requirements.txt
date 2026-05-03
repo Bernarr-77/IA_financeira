@@ -1,4 +1,7 @@
-﻿alembic==1.18.4
+uvicorn==0.34.0
+fastapi==0.115.6
+psycopg2-binary==2.9.12
+alembic==1.18.4
 amqp==5.3.1
 annotated-types==0.7.0
 anyio==4.13.0
@@ -42,7 +45,6 @@ parso==0.8.5
 platformdirs==4.5.1
 prompt_toolkit==3.0.52
 psutil==7.2.1
-psycopg2-binary==2.9.12
 pure_eval==0.2.3
 pyasn1==0.6.3
 pyasn1_modules==0.4.2
