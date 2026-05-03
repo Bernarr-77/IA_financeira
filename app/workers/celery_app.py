@@ -8,9 +8,12 @@ load_dotenv()
 # ─────────────────────────────────────────────
 # Configuração do Celery
 # ─────────────────────────────────────────────
+# O Railway fornece REDIS_URL por padrão.
+REDIS_URL = os.getenv("REDIS_URL") or os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+
 celery_app = Celery(
     "bia_financeira",
-    broker=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"),
+    broker=REDIS_URL,
     include=["app.workers.tasks"],
 )
 
