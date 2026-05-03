@@ -48,7 +48,24 @@ A Bia possui 22 "superpoderes" projetados para facilitar o seu controle financei
 
 ---
 
-## 🚀 Como funciona a arquitetura?
+## 🚀 Como hospedar no Railway
+
+Este projeto está pronto para ser enviado para o [Railway.app](https://railway.app/).
+
+### Passos:
+1. **Conecte seu GitHub**: No Railway, crie um novo projeto e selecione este repositório.
+2. **Crie 3 Serviços**: No painel do Railway, você deve criar 3 serviços apontando para este mesmo repositório:
+   - **Serviço API (Web)**: O Railway usará automaticamente o processo `web` do `Procfile`.
+   - **Serviço Worker**: Nas configurações, mude o *Start Command* para `celery -A app.workers.celery_app worker --loglevel=info`.
+   - **Serviço Beat**: Nas configurações, mude o *Start Command* para `celery -A app.workers.celery_app beat --loglevel=info`.
+3. **Adicione Recursos**: 
+   - Clique em "Add Service" -> **Database** -> **PostgreSQL**.
+   - Clique em "Add Service" -> **Database** -> **Redis**.
+4. **Variáveis de Ambiente**: O Railway preenche automaticamente `DATABASE_URL` e `REDIS_URL`. Você precisará adicionar manualmente:
+   - `APIKEY_GEMINI`
+   - `AUTHENTICATION_API_KEY` (da sua Evolution API)
+   - `SERVER_URL` (da sua Evolution API)
+   - `EVOLUTION_INSTANCE` (nome da sua instância padrão)
 
 1. Você manda uma mensagem no WhatsApp.
 2. A **Evolution API** recebe e dispara um *Webhook* para a API do FastAPI.
